@@ -11,7 +11,8 @@ st.set_page_config(
     page_title="DocPilot",
     page_icon="📚",
     layout="wide"
-)st.write("VERSION 2")
+)
+st.write("VERSION 2")
 st.title("📚 DocPilot")
 st.caption("AI PDF Assistant")
 st.sidebar.title("DocPilot")
