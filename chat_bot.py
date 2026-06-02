@@ -1,19 +1,19 @@
 import streamlit as st
 from pypdf import PdfReader
-import google.generativeai as genai
+from groq import Groq
 
-genai.configure(
-    api_key=st.secrets["GEMINI_API_KEY"]
+client = Groq(
+    api_key=st.secrets["GROQ_API_KEY"]
 )
-
-model = genai.GenerativeModel("gemini-2.5-flash")
 st.set_page_config(
     page_title="DocPilot",
     page_icon="📚",
     layout="wide"
 )
 st.title("📚 DocPilot")
-st.caption("AI PDF Assistant")
+st.caption(
+    "Upload a PDF, generate summaries, and ask questions using AI."
+)
 st.sidebar.title("DocPilot")
 st.sidebar.write("AI PDF Assistant")
 if st.sidebar.button("🗑 Clear Chat"):
@@ -36,7 +36,8 @@ if uploaded_file:
         page_text = page.extract_text()
 
         if page_text:
-            text += page_text
+             text += page_text
+    text = text[:50000]         
     st.success(
     f"Loaded {uploaded_file.name}"
 )
@@ -51,41 +52,62 @@ PDF Content:
 {text}
 """
             try:
-                summary = model.generate_content(
-                    summary_prompt
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": summary_prompt
+                        }
+                    ]
                 )
-
+                summary = response.choices[0].message.content
                 st.subheader("PDF Summary")
-                st.write(summary.text)
+                st.write(summary)
                 st.download_button(
-                    "⬇ Download Summary",
-                    summary.text,
-                    file_name="summary.txt"
-                )
+    "⬇ Download Summary",
+    summary,
+    file_name="summary.txt"
+)
+                
             except Exception as e:
                 st.error(f"Error: {e}")
 
     with st.expander("View PDF Content"):
         st.write(text[:5000])
 
-    question = st.text_input(
-        "Ask a question about the PDF"
-    )
+    question = st.chat_input(
+    "Ask about the PDF"
+)
+    
 
     if question:
         with st.spinner("Thinking..."):
             prompt = f"""
-            Answer the question using the PDF content.
+You are a PDF assistant.
 
-            PDF Content:
-            {text}
+Answer only using information from the PDF.
 
-            Question:
-            {question}
-            """
+If the answer is not present in the PDF, reply:
+"The PDF does not contain this information."
+
+PDF Content:
+{text}
+
+Question:
+{question}
+"""
             try:
-                response = model.generate_content(prompt)
-                answer = response.text
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+                answer = response.choices[0].message.content
                 st.session_state.messages.append({"question": question, "answer": answer})
             except Exception as e:
                 st.error(f"Error: {e}")
@@ -97,4 +119,4 @@ PDF Content:
             st.write(msg["answer"])
 
     st.divider()
-    st.caption("Built by Harshit using Python, Streamlit and Gemini")
+    st.caption("Built by Harshit using Python, Streamlit and Groq")

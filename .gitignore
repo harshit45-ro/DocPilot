@@ -1,0 +1,6 @@
+.venv/
+.venv-1/
+__pycache__/
+.streamlit/
+tempCodeRunnerFile.py
+.streamlit/secrets.toml
